@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidTrip(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'startDate', 'endDate', 'status', 'visibility', 'budget', 'stops', 'packingList', 'sharedWith', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && data.title is string && data.title.size() <= 200
+        && data.startDate is int
+        && data.endDate is int
+        && data.status in ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled']
+        && data.visibility in ['private', 'public', 'shared']
+        && data.budget is map
+        && data.budget.total is int
+        && data.budget.categories is map
+        && data.stops is list
+        && data.stops.size() <= 100
+        && data.packingList is list
+        && data.packingList.size() <= 200
+        && data.sharedWith is list
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    match /trips/{tripId} {
+      allow get: if isSignedIn() && (
+        isOwner(existing().ownerId) || 
+        existing().visibility == 'public' || 
+        (existing().visibility == 'shared' && request.auth.uid in existing().sharedWith)
+      );
+
+      allow list: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.visibility == 'public' ||
+        (resource.data.visibility == 'shared' && request.auth.uid in resource.data.sharedWith)
+      );
+
+      allow create: if isSignedIn() 
+        && isValidId(tripId)
+        && isValidTrip(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn()
+        && isValidId(tripId)
+        && isValidTrip(incoming())
+        && isOwner(existing().ownerId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isSignedIn()
+        && isValidId(tripId)
+        && isOwner(existing().ownerId);
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Traveloop",
+  "description": "AI-powered personalized travel planning platform with smart itineraries, budgeting, and real-time collaboration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Trip Planning", "Itinerary Builder", "Budget Analytics"]
+}

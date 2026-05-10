@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Trip": {
+      "title": "Trip",
+      "description": "A travel itinerary including stops, activities, and budget info.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "number" },
+        "endDate": { "type": "number" },
+        "coverImage": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "upcoming", "ongoing", "completed", "cancelled"] },
+        "visibility": { "type": "string", "enum": ["private", "public", "shared"] },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "total": { "type": "number" },
+            "categories": {
+              "type": "object",
+              "properties": {
+                "transport": { "type": "number" },
+                "accommodation": { "type": "number" },
+                "food": { "type": "number" },
+                "activities": { "type": "number" },
+                "other": { "type": "number" }
+              }
+            }
+          }
+        },
+        "stops": { "type": "array" },
+        "packingList": { "type": "array" },
+        "sharedWith": { "type": "array" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["ownerId", "title", "startDate", "endDate", "status"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Collection of user trips."
+    }
+  }
+}
